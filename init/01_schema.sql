@@ -1,0 +1,10 @@
+-- ============================================================
+-- Salesforce Backup - Schema Entry Point
+-- ============================================================
+-- Standard and custom object tables are defined in:
+--   02_custom_schema.sql  (auto-generated from SF CLI metadata)
+--
+-- To regenerate after org changes:
+--   sf sobject describe --target-org <org> --sobject <Object> --json > Salesforce_Projects/metadata/<Object>.json
+--   python scripts/generate_schema.py
+-- ============================================================
