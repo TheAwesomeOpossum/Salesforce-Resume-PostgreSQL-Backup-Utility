@@ -4,9 +4,11 @@ Main entry point for the Salesforce → PostgreSQL sync service.
 Phase 1: Full initial pull of all configured objects.
 
 Sync order:
-  1. Account  — filtered to Type IN ('Resume', 'Job Application')
-  2. Contact  — filtered to AccountId IN (synced account IDs)
-  3. All custom objects — all records, no filter
+  1. Account           — filtered to Type IN ('Resume', 'Job Application')
+  2. Contact           — filtered to AccountId IN (synced account IDs)
+  3. Custom objects    — all records, no filter
+  4. Interview__c      — all records
+  5. InterviewContact__c — all records
 """
 
 import logging
@@ -37,6 +39,8 @@ CUSTOM_OBJECTS = [
     "CoverLetter__c",
     "Education__c",
     "Experience__c",
+    "Interview__c",
+    "InterviewContact__c",
     "Job__c",
     "JobApplication__c",
     "Resume__c",

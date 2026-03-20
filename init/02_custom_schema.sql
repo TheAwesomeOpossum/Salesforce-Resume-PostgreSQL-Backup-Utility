@@ -582,3 +582,61 @@ CREATE TABLE IF NOT EXISTS strength (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_strength_sf_id ON strength(salesforce_id);
 CREATE INDEX        IF NOT EXISTS idx_strength_sync  ON strength(sync_status, last_synced);
 CREATE INDEX        IF NOT EXISTS idx_strength_ownerid ON strength(ownerid);
+
+-- ── Interview (Interview__c) ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS interview (
+    id              BIGSERIAL PRIMARY KEY,
+    salesforce_id   VARCHAR(18) NOT NULL UNIQUE,
+    ownerid                        VARCHAR(18),         -- SF: OwnerId (reference)
+    name                           VARCHAR(80),         -- SF: Name (string)
+    interview_date                 TIMESTAMP WITH TIME ZONE,  -- SF: Interview_Date__c (datetime)
+    status                         VARCHAR(255),        -- SF: Status__c (picklist)
+    type                           VARCHAR(255),        -- SF: Type__c (picklist)
+    round                          VARCHAR(255),        -- SF: Round__c (string/picklist)
+    outcome                        VARCHAR(255),        -- SF: Outcome__c (picklist)
+    notes                          TEXT,                -- SF: Notes__c (textarea)
+    jobapplication                 VARCHAR(18),         -- SF: JobApplication__c (reference)
+    isdeleted          BOOLEAN,
+    createddate        TIMESTAMP WITH TIME ZONE,
+    createdbyid        VARCHAR(18),
+    lastmodifieddate   TIMESTAMP WITH TIME ZONE,
+    lastmodifiedbyid   VARCHAR(18),
+    systemmodstamp     TIMESTAMP WITH TIME ZONE,
+    lastvieweddate     TIMESTAMP WITH TIME ZONE,
+    lastreferenceddate TIMESTAMP WITH TIME ZONE,
+    last_synced        TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    sync_status        VARCHAR(50)              DEFAULT 'pending'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_interview_sf_id ON interview(salesforce_id);
+CREATE INDEX        IF NOT EXISTS idx_interview_sync  ON interview(sync_status, last_synced);
+CREATE INDEX        IF NOT EXISTS idx_interview_ownerid ON interview(ownerid);
+CREATE INDEX        IF NOT EXISTS idx_interview_jobapplication ON interview(jobapplication);
+
+-- ── Interview Contact (InterviewContact__c) ────────────────────────────
+CREATE TABLE IF NOT EXISTS interviewcontact (
+    id              BIGSERIAL PRIMARY KEY,
+    salesforce_id   VARCHAR(18) NOT NULL UNIQUE,
+    ownerid                        VARCHAR(18),         -- SF: OwnerId (reference)
+    name                           VARCHAR(80),         -- SF: Name (string)
+    interview                      VARCHAR(18),         -- SF: Interview__c (reference)
+    contact                        VARCHAR(18),         -- SF: Contact__c (reference)
+    role                           VARCHAR(255),        -- SF: Role__c (picklist/string)
+    notes                          TEXT,                -- SF: Notes__c (textarea)
+    isdeleted          BOOLEAN,
+    createddate        TIMESTAMP WITH TIME ZONE,
+    createdbyid        VARCHAR(18),
+    lastmodifieddate   TIMESTAMP WITH TIME ZONE,
+    lastmodifiedbyid   VARCHAR(18),
+    systemmodstamp     TIMESTAMP WITH TIME ZONE,
+    lastvieweddate     TIMESTAMP WITH TIME ZONE,
+    lastreferenceddate TIMESTAMP WITH TIME ZONE,
+    last_synced        TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    sync_status        VARCHAR(50)              DEFAULT 'pending'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_interviewcontact_sf_id      ON interviewcontact(salesforce_id);
+CREATE INDEX        IF NOT EXISTS idx_interviewcontact_sync        ON interviewcontact(sync_status, last_synced);
+CREATE INDEX        IF NOT EXISTS idx_interviewcontact_ownerid     ON interviewcontact(ownerid);
+CREATE INDEX        IF NOT EXISTS idx_interviewcontact_interview   ON interviewcontact(interview);
+CREATE INDEX        IF NOT EXISTS idx_interviewcontact_contact     ON interviewcontact(contact);

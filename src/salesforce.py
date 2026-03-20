@@ -94,6 +94,7 @@ def query_contacts_for_accounts(sf: Salesforce, fields: list[str], account_ids: 
     return all_records
 
 
+
 def _chunk(lst: list, size: int) -> list[list]:
     """Split a list into chunks of at most `size` items."""
     return [lst[i:i + size] for i in range(0, len(lst), size)]
