@@ -36,5 +36,17 @@ services:
     volumes:
       - ./logs:/app/logs
 
+  cdc-listener:
+    build: .
+    container_name: sf_cdc
+    restart: unless-stopped
+    command: ["python", "-m", "src.cdc_listener"]
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
 volumes:
   postgres_data:
