@@ -60,6 +60,7 @@ OBJECT_TABLE_MAP = {
     "Interview__c":         "interview",
     "InterviewContact__c":  "interviewcontact",
     "JobApplication__c":    "jobapplication",
+    "Job_Search_Config__c": "job_search_config",
 }
 
 
@@ -185,7 +186,8 @@ class CometDClient:
     def __init__(self, sf, replay_id: int):
         self._client_id: str | None = None
         self._replay_id = replay_id
-        self._cometd_url = f"{sf.instance_url}/cometd/{config.SF_API_VERSION}"
+        base = sf.base_url.split("/services/")[0]
+        self._cometd_url = f"{base}/cometd/{config.SF_API_VERSION}"
         self._http = requests.Session()
         self._http.headers.update({
             "Authorization": f"Bearer {sf.session_id}",

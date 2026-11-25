@@ -63,14 +63,13 @@ def push_pending(sf, conn) -> dict:
     Returns:
         dict with keys: pushed (int), failed (int), total (int)
     """
-    record_type_id = get_record_type_id(sf, "Personal_Experience")
-
     with conn.cursor() as cur:
         cur.execute("""
             SELECT id, name, job, recordtypeid, start_date, end_date,
-                   description, skills, github_url
+                   description, skills, github_url, salesforce_id, sync_status,
+                   company
             FROM experience
-            WHERE sync_status = 'pending_push'
+            WHERE sync_status IN ('pending_push', 'pending_update')
             ORDER BY id
         """)
         columns = [desc[0] for desc in cur.description]
@@ -84,13 +83,23 @@ def push_pending(sf, conn) -> dict:
 
     for record in pending:
         try:
-            payload = _build_sf_payload(record, record_type_id)
-            result = sf_client._with_backoff(
-                lambda: sf.Experience__c.create(payload)
-            )
-            sf_id = result["id"]
-            _update_status(conn, record["id"], sf_id=sf_id, status="synced")
-            logger.info("Pushed '%s' → Salesforce ID %s", record["name"], sf_id)
+            is_update = record["sync_status"] == "pending_update"
+            record_type_id = _resolve_record_type(sf, record)
+            payload = _build_sf_payload(record, record_type_id, is_update=is_update)
+            if is_update:
+                sf_id = record["salesforce_id"]
+                sf_client._with_backoff(
+                    lambda p=payload, sid=sf_id: sf.Experience__c.update(sid, p)
+                )
+                _update_status(conn, record["id"], sf_id=sf_id, status="synced")
+                logger.info("Updated '%s' → Salesforce ID %s", record["name"], sf_id)
+            else:
+                result = sf_client._with_backoff(
+                    lambda p=payload: sf.Experience__c.create(p)
+                )
+                sf_id = result["id"]
+                _update_status(conn, record["id"], sf_id=sf_id, status="synced")
+                logger.info("Pushed '%s' → Salesforce ID %s", record["name"], sf_id)
             pushed += 1
         except SalesforceExpiredSession:
             logger.error("Salesforce session expired — aborting write-back. Re-authenticate and retry.")
@@ -106,21 +115,39 @@ def push_pending(sf, conn) -> dict:
     return summary
 
 
-def _build_sf_payload(record: dict, record_type_id: str) -> dict:
+def _resolve_record_type(sf, record: dict) -> str:
+    """
+    The staged row's `recordtypeid` may hold a RecordType DeveloperName (staged by
+    document_project.py), a real 012... Id (rows mirrored from Salesforce), or nothing
+    (legacy rows → Personal_Experience).
+    """
+    value = (record.get("recordtypeid") or "").strip()
+    if not value:
+        return get_record_type_id(sf, "Personal_Experience")
+    if value.startswith("012") and len(value) in (15, 18):
+        return value
+    return get_record_type_id(sf, value)
+
+
+def _build_sf_payload(record: dict, record_type_id: str, is_update: bool = False) -> dict:
     """Build the Salesforce REST API payload from a PostgreSQL experience row."""
     payload = {
         "Name": record["name"],
-        "Job__c": record["job"],
-        "RecordTypeId": record_type_id,
         "Start_Date__c": _format_date(record["start_date"]),
         "Skills__c": record["skills"],
     }
+    if not is_update:
+        payload["Job__c"] = record["job"]
+        payload["RecordTypeId"] = record_type_id
     if record.get("end_date"):
         payload["End_Date__c"] = _format_date(record["end_date"])
     if record.get("description"):
         payload["Description__c"] = record["description"]
     if record.get("github_url"):
         payload["GitHub_URL__c"] = record["github_url"]
+    # NOTE: Experience__c.Company__c is a formula field (derived from the Job), so it cannot be
+    # written. The staged `company` column is kept for reporting; the client company is carried
+    # in the description instead (see import_project_docs.build_payload).
     return payload
 
 

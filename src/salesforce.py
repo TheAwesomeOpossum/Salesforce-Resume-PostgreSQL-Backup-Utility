@@ -1,8 +1,12 @@
 """Salesforce connection and data retrieval via simple-salesforce."""
 
+import json
 import logging
+import shutil
+import subprocess
 import time
 from simple_salesforce import Salesforce, SalesforceExpiredSession
+from simple_salesforce.exceptions import SalesforceAuthenticationFailed
 from src import config
 
 logger = logging.getLogger(__name__)
@@ -12,19 +16,55 @@ SOQL_IN_CHUNK_SIZE = 999
 
 
 def connect() -> Salesforce:
-    """Authenticate to Salesforce and return a session."""
+    """
+    Authenticate to Salesforce and return a session.
+
+    Primary: username + password + security token from .env (works inside the container).
+    Fallback: the Salesforce CLI's cached OAuth session (`sf org display`), when the CLI is
+    installed on the host. This keeps host-side tooling (document-project, import_project_docs,
+    write_back) working when the org password or security token has rotated and .env is stale.
+    """
     logger.info("Connecting to Salesforce as %s", config.SF_USERNAME)
-    sf = Salesforce(
-        username=config.SF_USERNAME,
-        password=config.SF_PASSWORD,
-        security_token=config.SF_SECURITY_TOKEN,
-        consumer_key=config.SF_CONSUMER_KEY,
-        consumer_secret=config.SF_CONSUMER_SECRET,
-        instance_url=config.SF_INSTANCE_URL,
-        version=config.SF_API_VERSION,
-    )
+    try:
+        sf = Salesforce(
+            username=config.SF_USERNAME,
+            password=config.SF_PASSWORD,
+            security_token=config.SF_SECURITY_TOKEN,
+            consumer_key=config.SF_CONSUMER_KEY,
+            consumer_secret=config.SF_CONSUMER_SECRET,
+            instance_url=config.SF_INSTANCE_URL,
+            version=config.SF_API_VERSION,
+        )
+    except SalesforceAuthenticationFailed as exc:
+        if not shutil.which("sf"):
+            raise
+        logger.warning(
+            "Password login failed (%s). Falling back to the Salesforce CLI session for %s. "
+            "Update SF_PASSWORD / SF_SECURITY_TOKEN in .env so the sync container works too.",
+            exc.code, config.SF_USERNAME,
+        )
+        sf = _connect_via_cli(config.SF_USERNAME)
     logger.info("Connected. Instance: %s", sf.base_url)
     return sf
+
+
+def _connect_via_cli(username: str) -> Salesforce:
+    """Build a session from the sf CLI's cached access token (host-only fallback)."""
+    proc = subprocess.run(
+        ["sf", "org", "display", "--target-org", username, "--json"],
+        capture_output=True, text=True, check=False,
+    )
+    try:
+        result = json.loads(proc.stdout)["result"]
+    except (json.JSONDecodeError, KeyError) as exc:
+        raise RuntimeError(
+            f"`sf org display` did not return a session for {username}: {proc.stderr.strip()[:300]}"
+        ) from exc
+    return Salesforce(
+        instance_url=result["instanceUrl"],
+        session_id=result["accessToken"],
+        version=config.SF_API_VERSION,
+    )
 
 
 def describe_object(sf: Salesforce, sobject_name: str) -> dict:
