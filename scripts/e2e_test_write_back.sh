@@ -42,7 +42,7 @@ fi
 source .env
 
 PSQL="docker exec -i sf_postgres psql -U $POSTGRES_USER -d $POSTGRES_DB"
-SF_ORG="your-sf-user@example.com"
+SF_ORG="${SF_USERNAME:?SF_USERNAME is not set in .env}"
 
 # ── Scenario 1: Migration verification ────────────────────────
 header "Scenario 1: Migration Verification"

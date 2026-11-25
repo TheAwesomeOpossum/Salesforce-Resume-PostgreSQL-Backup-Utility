@@ -70,11 +70,13 @@ Present it as a proposed new skill: "The technology '{X}' is not in the Skills v
 
   **3. Deploy both files together:**
   ```bash
+  # The org username is not written in this file. Read it from the ignored .env file.
+  SF_USERNAME=$(grep -E '^SF_USERNAME=' ~/Docker_Projects/Salesforce_Backup/.env | cut -d= -f2-)
   cd ~/Salesforce_Projects/LWRPortfolioWebsite
   sf project deploy start \
     --metadata "GlobalValueSet:Skills" \
     --metadata "RecordType:Experience__c.Personal_Experience" \
-    --target-org your-sf-user@example.com
+    --target-org "$SF_USERNAME"
   ```
   Confirm the deploy succeeded before proceeding. Deploying the GlobalValueSet alone is not sufficient — the new value will exist in the value set but Salesforce will still reject it on write-back with `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`.
 
@@ -207,5 +209,6 @@ Experience '{name}' documented and published to Salesforce.
 
 To verify: sf data query \
   --query "SELECT Id, Name, Skills__c, GitHub_URL__c FROM Experience__c WHERE Id = '{id}'" \
-  --target-org your-sf-user@example.com
+  --target-org "$SF_USERNAME"
 ```
+(`$SF_USERNAME` is the `SF_USERNAME` value from `~/Docker_Projects/Salesforce_Backup/.env`.)
