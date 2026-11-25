@@ -1,0 +1,11 @@
+{
+  "employer_jobs": [
+    {
+      "job_id": "a00000000000000AAA",
+      "employer_job": "Senior Developer - Example Holdings",
+      "parent_company": "Example Holdings",
+      "companies": ["Example Company A", "Example Company B", "Example Holdings"],
+      "operating_company_note": "<p><em>For {company}, an Example Holdings company.</em></p>"
+    }
+  ]
+}

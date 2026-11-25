@@ -32,3 +32,9 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local backups
+*.bak
+
+# Local work-project settings (employer/client names, Job record IDs)
+work_projects.json
