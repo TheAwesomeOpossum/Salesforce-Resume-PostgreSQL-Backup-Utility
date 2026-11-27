@@ -14,7 +14,7 @@ Gather project information from the following sources (in priority order):
    - `name` → record name
    - `start_date` → ISO date string
    - `end_date` → ISO date string or null
-   - `github_url` → public repo URL
+   - `github_url` → public repo URL (GitHub URLs only: see the URL guard below)
    - `description_override` → if non-empty, use verbatim as description (skip generation)
    - `skills_override` → if non-empty list, use verbatim as skills (skip inference)
 
@@ -131,7 +131,17 @@ If the user cancels: Stop. Do not call any scripts.
 
 ## Step 5: Stage to PostgreSQL
 
-After approval, build the JSON payload from the approved draft:
+### URL guard
+
+The `github_url` field is shown on the public portfolio site, so it may only hold a public GitHub address.
+
+- Accept only a URL that starts with `https://github.com/`.
+- Reject anything else: a private or self-hosted Git server, an IP address, `localhost`, or an `ssh://` address.
+- A project with no public GitHub repository has no URL: set `github_url` to `null`.
+- If a URL is rejected, tell the user it cannot be published and that the record will be staged with no repository link. Do not drop it silently.
+- Do not write a link to a private Git server into the description either.
+
+After approval, build the JSON payload from the approved draft, after checking `github_url` against the URL guard:
 
 ```json
 {
