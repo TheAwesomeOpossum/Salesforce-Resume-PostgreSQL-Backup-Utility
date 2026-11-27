@@ -22,6 +22,7 @@ Usage:
 
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
 import time
 import uuid
@@ -36,7 +37,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("/app/logs/cdc_listener.log"),
+        # Rotate at 10 MB and keep 5 old files, so the log cannot grow without limit.
+        RotatingFileHandler("/app/logs/cdc_listener.log", maxBytes=10 * 1024 * 1024, backupCount=5),
     ],
 )
 logger = logging.getLogger(__name__)
